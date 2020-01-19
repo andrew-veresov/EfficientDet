@@ -1,23 +1,50 @@
 from model import efficientdet
+from datetime import date
 import cv2
+import glob
 import os
+import re
 import numpy as np
 import time
 from utils import preprocess_image
 from utils.anchors import anchors_for_shape
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+today = str(date.today())
 
-phi = 1
-weighted_bifpn = False
-model_path = 'checkpoints/2019-12-03/pascal_05_0.6283_1.1975_0.8029.h5'
-image_sizes = (512, 640, 768, 896, 1024, 1280, 1408)
-image_size = image_sizes[phi]
-classes = [
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("image_path", help="Path to an image.")
+parser.add_argument('--snapshot-path',
+                    help='Path where snapshots are stored',
+                    default='checkpoints/{}'.format(today))
+parser.add_argument('--epoch',
+                    help='Epoch number to load a checkpoint for. Will use latest epoch if option is not provided.',
+                    type=int,
+                    default=None)
+parser.add_argument('--phi', help='Hyper parameter phi', default=0, type=int, choices=(0, 1, 2, 3, 4, 5, 6))
+parser.add_argument('--classes', help='List of classes', nargs='+', default=[
     'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair',
     'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor',
-]
+])
+args = parser.parse_args()
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+snapshots = [file_name for file_name in glob.glob(os.path.join(args.snapshot_path, "*.h5"))
+             if args.epoch is None or re.match(f"[^_]+_{args.epoch:02}", file_name)]
+
+snapshots = sorted(snapshots,
+                   key=lambda fn: int(re.match(r"[^_]+_(\d+)", fn).group(1)),
+                   reverse=True)
+
+phi = args.phi
+weighted_bifpn = False
+model_path = snapshots[0]
+image_sizes = (512, 640, 768, 896, 1024, 1280, 1408)
+image_size = image_sizes[phi]
+classes = args.classes
 num_classes = len(classes)
+print(f'classes: {classes}')
 score_threshold = 0.5
 colors = [np.random.randint(0, 256, 3).tolist() for i in range(num_classes)]
 model, prediction_model = efficientdet(phi=phi,
@@ -26,8 +53,7 @@ model, prediction_model = efficientdet(phi=phi,
                                        score_threshold=score_threshold)
 prediction_model.load_weights(model_path, by_name=True)
 
-image_path = 'datasets/VOC2007/JPEGImages/000002.jpg'
-image = cv2.imread(image_path)
+image = cv2.imread(args.image_path)
 src_image = image.copy()
 image = image[:, :, ::-1]
 h, w = image.shape[:2]

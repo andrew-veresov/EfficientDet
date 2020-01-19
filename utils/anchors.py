@@ -2,6 +2,10 @@ import numpy as np
 # import keras
 from tensorflow import keras
 
+import pyximport
+pyximport.install(setup_args={"include_dirs": np.get_include()},
+                  reload_support=True)
+
 from utils.compute_overlap import compute_overlap
 
 

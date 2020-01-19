@@ -6,6 +6,11 @@ The pretrained EfficientNet weights files are downloaded from [Callidior/keras-a
 Thanks for their hard work.
 This project is released under the Apache License. Please take their licenses into consideration too when use this project.
 
+## Install on Windows
+1. Rename utils/compute_overlap.cpython-36m-x86_64-linux-gnu.so to compute_overlap.so
+2. Install `conda install -c conda-forge fbprophet`
+3. Install Keras EfficientDet by running `pip install . --user` within the cloned repo folder
+
 ## Train
 ### build dataset 
 1. Pascal VOC 
